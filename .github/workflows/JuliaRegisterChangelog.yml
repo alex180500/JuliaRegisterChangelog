@@ -1,0 +1,90 @@
+name: JuliaRegisterChangelog
+author: Alessandro Romancino
+description: Automatic changelog and registering of a Julia package using conventionalcommits.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Project.toml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.version_check.outputs.version_changed }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for version change
+        id: version_check
+        if: github.event_name == 'workflow_dispatch' || !github.event.created
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if git diff ${{ github.event.before }} ${{ github.sha }} -- 'Project.toml' | grep -q '^[+-]version ='; then
+            echo "Version has changed. Proceeding."
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version has not changed. Skipping."
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  changelog-and-register:
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.version_changed == 'true'
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install conventional-changelog-cli
+        run: npm install --no-save conventional-changelog-cli
+
+      - name: Generate conventional release notes
+        id: changelog
+        run: |
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          npx conventional-changelog -p conventionalcommits -r 1 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment on triggering commit for JuliaRegistrator
+        uses: actions/github-script@v7
+        env:
+          NOTES: ${{ steps.changelog.outputs.notes }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.sha;
+            const notes = process.env.NOTES;
+            const body = [
+              `@JuliaRegistrator register`,
+              ``,
+              `Release notes:`,
+              ``,
+              notes
+            ].join("\n");
+            
+            await github.rest.repos.createCommitComment({
+              owner,
+              repo,
+              commit_sha: sha,
+              body
+            });

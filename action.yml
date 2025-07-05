@@ -26,7 +26,7 @@ runs:
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           echo "✅ Workflow manually dispatched. Proceeding."
           echo "version_changed=true" >> $GITHUB_OUTPUT
-        elif git diff HEAD~1 HEAD -- 'Project.toml' | grep -q '^[+-]version ='; then
+        elif git diff ${{ github.event.before }} ${{ github.sha }} -- 'Project.toml' | grep -q '^[+-]version ='; then
           echo "✅ Version has changed in Project.toml. Proceeding."
           echo "version_changed=true" >> $GITHUB_OUTPUT
         else
@@ -68,8 +68,8 @@ runs:
           const { owner, repo } = context.repo;
           const sha = context.sha;
           const notes = process.env.NOTES;
-          const body = `@JuliaRegistrator register\n\nRelease notes:\n${notes}`;
-
+          const body = `@JuliaRegistrator register\n\nRelease notes:\n\n${notes}`;
+          
           await github.rest.repos.createCommitComment({
             owner,
             repo,

@@ -1,0 +1,78 @@
+name: Auto-Changelog & Julia Register
+author: Alessandro Romancino
+description: Automatic changelog and registering of a Julia package using Conventional Commits and JuliaRegistrator
+
+inputs:
+  github_token:
+    description: The GITHUB_TOKEN secret
+    required: true
+
+branding:
+  icon: bookmark
+  color: purple
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check out repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check for version change or manual dispatch
+      id: version_check
+      shell: bash
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "✅ Workflow manually dispatched. Proceeding."
+          echo "version_changed=true" >> $GITHUB_OUTPUT
+        elif git diff HEAD~1 HEAD -- 'Project.toml' | grep -q '^[+-]version ='; then
+          echo "✅ Version has changed in Project.toml. Proceeding."
+          echo "version_changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "🛑 Version has not changed. Skipping subsequent steps."
+          echo "version_changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Set up Node.js
+      if: steps.version_check.outputs.version_changed == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+
+    - name: Install changelog tools
+      if: steps.version_check.outputs.version_changed == 'true'
+      shell: bash
+      run: |
+        npm install --no-save conventional-changelog-cli
+        echo "✅ Dependencies installed."
+
+    - name: Generate conventional release notes
+      if: steps.version_check.outputs.version_changed == 'true'
+      id: changelog
+      shell: bash
+      run: |
+        echo "notes<<EOF" >> $GITHUB_OUTPUT
+        npx conventional-changelog -p conventionalcommits -r 1 >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        echo "✅ Release notes generated."
+
+    - name: Comment on triggering commit for JuliaRegistrator
+      if: steps.version_check.outputs.version_changed == 'true'
+      uses: actions/github-script@v7
+      env:
+        NOTES: ${{ steps.changelog.outputs.notes }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const { owner, repo } = context.repo;
+          const sha = context.sha;
+          const notes = process.env.NOTES;
+          const body = `@JuliaRegistrator register\n\nRelease notes:\n${notes}`;
+
+          await github.rest.repos.createCommitComment({
+            owner,
+            repo,
+            commit_sha: sha,
+            body
+          });

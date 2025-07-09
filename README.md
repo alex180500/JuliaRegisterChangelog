@@ -24,7 +24,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: alex180500/JuliaRegisterChangelog@v1
+      - uses: alex180500/JuliaRegisterChangelog@latest
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```

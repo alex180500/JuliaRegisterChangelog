@@ -17,8 +17,6 @@ name: Auto-Changelog & Julia Register
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     paths:
       - Project.toml
 

@@ -4,8 +4,8 @@
 
 This workflow is triggered in two scenarios:
 
-* **On Push**: The action checks if the `version` field in `Project.toml` has changed.
-* **On Manual Dispatch**: The action runs unconditionally, generating a changelog and commenting the latest commit (useful in case the registering process fails or you want to manually trigger it again).
+- **On Push**: The action checks if the `version` field in `Project.toml` has changed.
+- **On Manual Dispatch**: The action runs unconditionally, generating a changelog and commenting the latest commit (useful in case the registering process fails or you want to manually trigger it again).
 
 ## Usage
 
@@ -41,6 +41,16 @@ The process consists of:
 2. Check if the version has changed since the last commit and proceed only if it has.
 3. Generate a changelog automatically using [Conventional Commits](https://www.conventionalcommits.org/) and [conventional-changelog](https://github.com/conventional-changelog/conventional-changelog).
 4. Trigger [JuliaRegistrator](https://github.com/JuliaRegistries/Registrator.jl) commenting on the latest commit to register the package and correctly formats the changelog.
+
+## Changelog
+
+### v1.1.0
+
+- fix: replace deprecated `conventional-changelog-cli` with `conventional-changelog`
+
+### v1.0.0
+
+- Initial release
 
 ## License
 

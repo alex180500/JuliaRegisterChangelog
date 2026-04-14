@@ -44,7 +44,7 @@ runs:
       if: steps.version_check.outputs.version_changed == 'true'
       shell: bash
       run: |
-        npm install --no-save conventional-changelog
+        npm install --no-save conventional-changelog conventional-changelog-conventionalcommits
         echo "✅ Dependencies installed."
 
     - name: Generate conventional release notes

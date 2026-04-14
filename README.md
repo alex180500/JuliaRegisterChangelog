@@ -44,6 +44,11 @@ The process consists of:
 
 ## Changelog
 
+### v1.2.0
+
+- fix: fixed action by installing correctly the `conventional-changelog` and `conventional-changelog-conventionalcommits` modules
+- chore: updated the action to use `github-script@v9` and `checkout@v6`
+
 ### v1.1.0
 
 - fix: replace deprecated `conventional-changelog-cli` with `conventional-changelog`
